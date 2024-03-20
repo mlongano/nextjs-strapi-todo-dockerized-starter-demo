@@ -1,36 +1,48 @@
 #FROM node:18-alpine as base
 #RUN apk add --no-cache g++ make py3-pip libc6-compat
-FROM node:lts as base
+FROM ubuntu:devel as os
+RUN apt-get update && apt-get install -y curl lsd iputils-ping git
+ARG NODE_VERSION=20
+ENV NODE_VERSION=${NODE_VERSION}
+SHELL ["/bin/bash", "-c"]
+
+ARG USERNAME=nextjs
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+# Create the user
+# RUN groupadd --gid $USER_GID $USERNAME \
+#     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
+RUN usermod -l $USERNAME ubuntu \
+    && groupmod -n $USERNAME ubuntu \
+    && mv /home/ubuntu /home/$USERNAME \
+    #
+    # [Optional] Add sudo support. Omit if you don't need to install software after connecting.
+    && apt-get update \
+    && apt-get install -y sudo \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+    && chmod 0440 /etc/sudoers.d/$USERNAME
+
+# ********************************************************
+# * Anything else you want to do like clean up goes here *
+# ********************************************************
+
+# [Optional] Set the default user. Omit if you want to keep the default as root.
+USER $USERNAME
+ARG HOME=/home/$USERNAME
+ENV HOME=${HOME}
+WORKDIR $HOME
+
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+RUN . ~/.nvm/nvm.sh && nvm install ${NODE_VERSION}
+RUN . ~/.nvm/nvm.sh && nvm use ${NODE_VERSION}
+RUN . ~/.nvm/nvm.sh && npm install -g npm@latest
+RUN . ~/.nvm/nvm.sh && npm install -g yarn
+
+FROM os as base
+USER $USERNAME
 WORKDIR /app
-COPY ./next/package*.json ./
 EXPOSE 3000
 
-FROM base as builder
-WORKDIR /app
-COPY ./next .
-RUN npm run build
-
-
-FROM base as production
-WORKDIR /app
-
-ENV NODE_ENV=production
-RUN npm ci
-
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
-USER nextjs
-
-
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/public ./public
-
-CMD npm start
-
 FROM base as dev
+USER $USERNAME
 ENV NODE_ENV=development
-RUN npm install
-COPY ./next .
-CMD npm run dev

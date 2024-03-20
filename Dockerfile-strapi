@@ -11,9 +11,10 @@ ENV PATH /opt/node_modules/.bin:$PATH
 RUN yarn
 
 WORKDIR /opt/app
-COPY ./strapi .
-RUN chown -R node:node /opt/app
+
 USER node
-RUN ["yarn", "build"]
+#COPY --chown=node:node ./strapi/ .
+
+#RUN ["yarn", "build"]
 EXPOSE 1337
-CMD ["yarn", "develop"]
+#CMD ["yarn", "develop"]

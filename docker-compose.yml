@@ -21,6 +21,7 @@ services:
       NODE_ENV: ${NODE_ENV}
     volumes:
       - ./strapi:/opt/app
+    command: yarn develop
     ports:
       - "1337:1337"
     networks:
@@ -55,13 +56,28 @@ services:
       dockerfile: Dockerfile-next
     volumes:
       - ./next:/app
-      - /app/node_modules
-      - /app/.next
-
+    command: /bin/bash
+    stdin_open: true
+    tty: true
     ports:
       - 3000:3000
     networks:
       - strapi
+  shell:
+    container_name: shell
+    image: ubuntu:devel #or any other image you want to use
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+    # uncomment the following lines if you want to use docker-compose.yml outside the dev container
+    # volumes:
+    #   - .:/workspace
+    networks:
+      - strapi
+    depends_on:
+      - strapi
+      - next
+
 #volumes:
 #  strapi-data:
 
