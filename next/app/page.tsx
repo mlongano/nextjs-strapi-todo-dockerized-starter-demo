@@ -4,7 +4,7 @@ import TodoEntry from '@/components/TodoEntry';
 import TodoInput from "@/components/TodoInput";
 
 async function getData() {
-  const res = await fetch('http://strapi:1337/api/todos', { next: { tags: ['todos'] } })
+  const res = await fetch('http://strapi:1337/api/todos?sort=dueDate', { next: { tags: ['todos'] } })
   // The return value is *not* serialized
   // You can return Date, Map, Set, etc.
 
