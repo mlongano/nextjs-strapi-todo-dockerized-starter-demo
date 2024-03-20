@@ -57,7 +57,7 @@ export async function updateTodo(todo: any) {
   if (!res.ok) {
     throw new Error('Failed to update todo')
   }
-
+  revalidateTag('todos')
   return res.json()
 }
 
@@ -69,7 +69,7 @@ export async function deleteTodo(id: number) {
   if (!res.ok) {
     throw new Error('Failed to delete todo')
   }
-
+  revalidateTag('todos')
   return res.json()
 }
 
