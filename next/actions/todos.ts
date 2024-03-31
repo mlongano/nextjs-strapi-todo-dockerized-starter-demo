@@ -1,9 +1,21 @@
 'use server'
 
+import { Todo, TodoUpdate } from "@/types/todo"
 import { revalidateTag } from "next/cache"
+import { flattenAttributes, getStrapiURL } from "@/lib/utils"
+import qs from 'qs';
+
+const baseUrl = getStrapiURL();
 
 export async function getTodos() {
-  const res = await fetch('http://strapi:1337/api/todos')
+  const url = new URL("/api/todos", baseUrl);
+  url.search = qs.stringify({ sort: ['createdAt:desc'] });
+  const res = await fetch(url.href, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
   // The return value is *not* serialized
   // You can return Date, Map, Set, etc.
 
@@ -11,14 +23,17 @@ export async function getTodos() {
     // This will activate the closest `error.js` Error Boundary
     throw new Error('Failed to fetch data')
   }
-
-  return res.json()
+  return res.json();
 }
 
 export async function createTodo(title: string) {
+  const url = new URL("/api/todos", baseUrl);
+  // get today's date and time
+  const currentDate = new Date();
+  const formattedDate = currentDate.toISOString();
   try {
 
-    const res = await fetch('http://strapi:1337/api/todos', {
+    const res = await fetch(url.href, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -26,7 +41,7 @@ export async function createTodo(title: string) {
       body: JSON.stringify({
         data: {
           title: title,
-          dueDate: "2024-03-18T23:37:11.180Z",
+          dueDate: formattedDate,
           isDone: false
         }
       })
@@ -45,24 +60,61 @@ export async function createTodo(title: string) {
   }
 }
 
-export async function updateTodo(todo: any) {
-  const res = await fetch(`http://strapi:1337/api/todos/${todo.id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ data: todo.attributes })
-  })
+export async function setTodoIsDone(documentId: string, isDone: boolean) {
+  console.log('PUT (update)', isDone);
+  const url = new URL(`/api/todos/${documentId}`, baseUrl);
+  try {
+    const res = await fetch(url.href, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ data: { isDone } })
+    });
 
-  if (!res.ok) {
-    throw new Error('Failed to update todo')
+    if (!res.ok) {
+      throw new Error('Failed to update todo');
+    }
+    revalidateTag('todos');
+    return res.json();
+  } catch (error) {
+    console.log(error);
+    return { status: "error", error };
+
+  } finally {
+    revalidateTag('todos');
   }
-  revalidateTag('todos')
-  return res.json()
 }
 
-export async function deleteTodo(id: number) {
-  const res = await fetch(`http://strapi:1337/api/todos/${id}`, {
+export async function updateTodo(todo: TodoUpdate) {
+  console.log('PUT (update)', todo);
+  const url = new URL(`/api/todos/${todo.documentId}`, baseUrl);
+  try {
+    const res = await fetch(url.href, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ data: todo })
+    });
+
+    if (!res.ok) {
+      throw new Error('Failed to update todo');
+    }
+    revalidateTag('todos');
+    return res.json();
+  } catch (error) {
+    console.log(error);
+    return { status: "error", error };
+
+  } finally {
+    revalidateTag('todos');
+  }
+}
+
+export async function deleteTodo(documentId: string) {
+  const url = new URL(`/api/todos/${documentId}`, baseUrl);
+  const res = await fetch(url.href, {
     method: 'DELETE'
   })
 
@@ -70,6 +122,5 @@ export async function deleteTodo(id: number) {
     throw new Error('Failed to delete todo')
   }
   revalidateTag('todos')
-  return res.json()
 }
 
