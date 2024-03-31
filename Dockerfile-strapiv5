@@ -1,0 +1,20 @@
+FROM node:lts
+# Installing libvips-dev for sharp Compatibility
+ARG NODE_ENV=development
+ENV NODE_ENV=${NODE_ENV}
+
+WORKDIR /opt/
+COPY ./strapiv5/package.json ./strapiv5/yarn.lock ./
+RUN yarn global add node-gyp
+RUN yarn config set network-timeout 600000 -g && yarn install
+ENV PATH /opt/node_modules/.bin:$PATH
+RUN yarn
+
+WORKDIR /opt/app
+
+USER node
+#COPY --chown=node:node ./strapi/ .
+
+#RUN ["yarn", "build"]
+EXPOSE 1337
+#CMD ["yarn", "develop"]

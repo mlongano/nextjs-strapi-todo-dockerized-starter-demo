@@ -1,0 +1,46 @@
+services:
+  strapi:
+    container_name: strapi
+    build:
+      context: .
+      dockerfile: Dockerfile-strapiv5
+    image: strapi:latest
+    restart: unless-stopped
+    env_file: ./strapiv5/.env
+    environment:
+      DATABASE_CLIENT: ${DATABASE_CLIENT}
+      DATABASE_FILENAME: ${DATABASE_FILENAME}
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
+      APP_KEYS: ${APP_KEYS}
+      NODE_ENV: ${NODE_ENV}
+    volumes:
+      - ./strapiv5:/opt/app
+    command: yarn develop
+    ports:
+      - "1337:1337"
+    networks:
+      - strapi
+
+  next:
+    container_name: next
+    build:
+      context: .
+      target: dev
+      dockerfile: Dockerfile-next
+    volumes:
+      - ./next:/app
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+    ports:
+      - 3000:3000
+    networks:
+      - strapi
+#volumes:
+#  strapi-data:
+
+networks:
+  strapi:
+    name: Strapi
+    driver: bridge

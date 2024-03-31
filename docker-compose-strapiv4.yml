@@ -1,0 +1,87 @@
+version: "3"
+services:
+  strapi:
+    container_name: strapi
+    build:
+      context: .
+      dockerfile: Dockerfile-strapi
+    image: strapi:latest
+    restart: unless-stopped
+    env_file: ./strapi/.env
+    environment:
+      DATABASE_CLIENT: ${DATABASE_CLIENT}
+      DATABASE_HOST: strapiDB
+      DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
+      APP_KEYS: ${APP_KEYS}
+      NODE_ENV: ${NODE_ENV}
+    volumes:
+      - ./strapi:/opt/app
+    command: yarn develop
+    ports:
+      - "1337:1337"
+    networks:
+      - strapi
+    depends_on:
+      - strapiDB
+
+  strapiDB:
+    container_name: strapiDB
+    platform: linux/amd64 #for platform error on Apple M1 chips
+    restart: unless-stopped
+    env_file: ./strapi/.env
+    image: postgres:12.0-alpine
+    environment:
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+    volumes:
+      - ./data:/var/lib/postgresql/data/ #using a volume
+      #- strapi-data:/var/lib/postgresql/data/ # if you want to use a docker volume
+
+    ports:
+      - "6432:5432"
+    networks:
+      - strapi
+
+  next:
+    container_name: next
+    build:
+      context: .
+      target: dev
+      dockerfile: Dockerfile-next
+    volumes:
+      - ./next:/app
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+    ports:
+      - 3000:3000
+    networks:
+      - strapi
+  shell:
+    container_name: shell
+    image: ubuntu:devel #or any other image you want to use
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+    # uncomment the following lines if you want to use docker-compose.yml outside the dev container
+    # volumes:
+    #   - .:/workspace
+    networks:
+      - strapi
+    depends_on:
+      - strapi
+      - next
+
+#volumes:
+#  strapi-data:
+
+networks:
+  strapi:
+    name: Strapi
+    driver: bridge
